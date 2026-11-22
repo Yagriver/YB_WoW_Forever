@@ -13,3 +13,18 @@ The full plan lives in the doc "YagriverBinds: PC + Moonlight edition plan".
 
 Rules kept: installers delete only this project's files; no mouseover on emergencies; no /cancelform;
 weapon swaps manual; mockups first; restart Steam after a Deck install.
+
+## Probe results (2026-11-22, PC desk and Switch over Moonlight)
+
+- Screens: desk 3440x1440 (ratio 2.39), Switch stream 1920x1080 (1.78). WoW follows the virtual display.
+- Both used UI scale 0.85: per-mode scale is needed.
+- Sync is on (synchronizeBindings 1, synchronizeConfig 1): all 25 Deck keys and 25 YB macros are on the PC.
+- Edit Mode: only the Deck's layouts exist; the Switch used "SteamDeck at dock 1080".
+- Forever's pad bindings sit in their own context (GamepadModeInGameCore), the same on every modifier:
+  face and D-pad = gamepad action buttons, LB/RB = target modifiers, LT/RT = bar modifiers,
+  L3 = autorun, R3 = ping, Select = UI focus, Start = radial. PADSOCIAL arrived once and is unbound.
+- With a trigger held, buttons arrive as the plain key (LT is not Shift in the gamepad UI).
+  Overrides on SHIFT-/CTRL-/ALT- combinations never fire; RT as Alt changes nothing.
+- A priority override on the plain key catches L1, R1, L3 and R3 on press and release, and the secure
+  code sees which triggers are held, also in combat. Taking a button removes its own job.
+- The trigger must be pressed first. Chat test: inconclusive (probe bug). Stick read: not tested yet.
