@@ -1,0 +1,8 @@
+## Interface: 16001
+## Title: YB Probe
+## Notes: One-off test for the YagriverBinds PC edition. Reports how WoW Forever handles the pad; delete after use.
+## Author: Yagriver
+## Version: 1.0
+## SavedVariables: YBProbeDB
+
+YBProbe.lua

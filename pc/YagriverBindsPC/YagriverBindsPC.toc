@@ -1,0 +1,13 @@
+## Interface: 16001
+## Title: Yagriver Binds PC
+## Notes: PC edition: PC (desk) and Switch (Moonlight) modes, chat panel, weapon keys. Never saves bindings or creates macros.
+## Author: Yagriver
+## Version: 1.1
+## SavedVariables: YagriverBindsPCDB
+## SavedVariablesPerCharacter: YagriverBindsPCCharDB
+
+Data.lua
+Core.lua
+Hint.lua
+Panel.lua
+UI.lua
