@@ -1,4 +1,4 @@
-Yagriver Binds PC 1.0
+Yagriver Binds PC 1.1
 =====================
 
 The PC edition: two modes on one PC, each with its own settings.
@@ -24,15 +24,16 @@ First time, on the Switch
   3. Device: UI scale for 1080p, hint size / Move, "Right stick always moves the camera" if you want it.
   4. Edit Mode: make a layout for the Switch (copy "SteamDeck at dock 1080", rename it), then pick it in
      Device > Layout. Right now the Switch borrows the Deck's docked layout.
-  5. Device > Stick check (10 s): push the RIGHT stick all around, then the LEFT. The result is saved
-     for the wheels.
+  5. Device > Stick check (12 s) and Trigger check (20 s), out of combat: follow the big text on screen
+     (right stick, then left stick / hold ZL, hold ZR, hold both, let go). The results are saved for
+     the wheels.
 
 Checklist
   [ ] Desk: PC mode at login, keyboard UI, your scale, weapon keys work, hint shows your key.
   [ ] Switch: Switch mode by itself (banner or login), gamepad UI, its own scale, hint says "YB panel".
   [ ] Back at the desk: PC scale and keyboard UI come back.
   [ ] YB panel: a phrase reaches the chat (try Say), channel buttons work, Caster / Feral set buttons equip.
-  [ ] Stick check done on the Switch.
+  [ ] Stick check and Trigger check done on the Switch.
 
 Send me afterwards
   E:\Archivos de programa\World of Warcraft\_forever_\WTF\Account\<ACCOUNT>\SavedVariables\YagriverBindsPC.lua

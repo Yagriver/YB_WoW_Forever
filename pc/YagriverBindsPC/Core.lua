@@ -5,7 +5,7 @@
 --   * Every setting lives in this PC's own files (YagriverBindsPCDB / YagriverBindsPCCharDB).
 --   * Two modes: "pc" (desk, keyboard and mouse) and "switch" (Moonlight, gamepad UI).
 local ADDON, YB = ...
-YB.VERSION = "1.0"
+YB.VERSION = "1.1"
 
 ---------------------------------------------------------------- API compatibility
 function YB.SpellName(id)
@@ -359,41 +359,166 @@ function YB:Conflicts()
   return out
 end
 
----------------------------------------------------------------- stick check (for the coming wheels)
--- 10 seconds: push the right stick around, then the left. Records which of the game's sticks move.
-function YB:StickCheck(done)
-  if not (C_GamePad and C_GamePad.GetDeviceMappedState) then return false, "No gamepad API in this client." end
-  local maxes, names = {}, {}
-  local t, f = 0, YB.stickFrame or CreateFrame("Frame")
-  YB.stickFrame = f
+---------------------------------------------------------------- pad checks (for the coming wheels)
+-- Both run in timed phases with a coach line on screen; results are saved for the next version.
+local coach = CreateFrame("Frame", "YagriverBindsPCCoach", UIParent)
+coach:SetSize(600, 60); coach:SetPoint("TOP", 0, -140); coach:SetFrameStrata("FULLSCREEN_DIALOG"); coach:Hide()
+local coachBg = coach:CreateTexture(nil, "BACKGROUND"); coachBg:SetAllPoints(); coachBg:SetColorTexture(0, 0, 0, 0.7)
+local coachText = coach:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge"); coachText:SetPoint("CENTER")
+
+local function padState()
+  if not (C_GamePad and C_GamePad.GetDeviceMappedState) then return nil end
+  local ok, st = pcall(C_GamePad.GetDeviceMappedState)
+  if ok then return st end
+end
+local function padDown(st, binding)
+  if not (st and st.buttons and C_GamePad.ButtonBindingToIndex) then return false end
+  local ok, i = pcall(C_GamePad.ButtonBindingToIndex, binding)
+  return ok and i and st.buttons[i + 1] and true or false
+end
+
+-- runs phases { {label, seconds}, ... }; sample(phase, st) each frame; finish() at the end
+local function runPhases(phases, sample, finish)
+  local f = YB.checkFrame or CreateFrame("Frame")
+  YB.checkFrame = f
+  local i, t = 1, 0
+  coach:Show()
   f:SetScript("OnUpdate", function(self, elapsed)
     t = t + elapsed
-    local st = C_GamePad.GetDeviceMappedState()
-    if st and st.sticks then
+    local ph = phases[i]
+    if t >= ph[2] then
+      i, t = i + 1, 0
+      if not phases[i] then
+        self:SetScript("OnUpdate", nil)
+        coach:Hide()
+        finish()
+        return
+      end
+      ph = phases[i]
+    end
+    coachText:SetText(("%s  (%d)"):format(ph[1], math.ceil(ph[2] - t)))
+    if t >= 1 then sample(i, padState()) end   -- the first second of a phase is for moving your hands
+  end)
+end
+
+-- Stick check: right stick alone, then left stick alone. Records which of the game's sticks move.
+function YB:StickCheck(done)
+  if YB.checkFrame and YB.checkFrame:GetScript("OnUpdate") then return false, "A check is already running." end
+  if not padState() then return false, "No pad seen: press a button on the Switch first." end
+  local maxes, names = { {}, {} }, {}
+  runPhases({ { "Push the RIGHT stick all around", 6 }, { "Now the LEFT stick all around", 6 } },
+    function(p, st)
+      if not (st and st.sticks) then return end
       for i = 1, st.stickCount or #st.sticks do
         local s = st.sticks[i]
         if s then
           local m = math.max(math.abs(s.x or 0), math.abs(s.y or 0))
-          if m > (maxes[i] or 0) then maxes[i] = m end
+          if m > (maxes[p][i] or 0) then maxes[p][i] = m end
           if not names[i] and C_GamePad.StickIndexToConfigName then
             local ok, n = pcall(C_GamePad.StickIndexToConfigName, i - 1)
             names[i] = ok and n or "?"
           end
         end
       end
-    end
-    if t >= 10 then
-      self:SetScript("OnUpdate", nil)
-      local parts = {}
-      for i = 1, 8 do
-        if maxes[i] then table.insert(parts, ("%d %s %.2f"):format(i, tostring(names[i]), maxes[i])) end
+    end,
+    function()
+      local out = {}
+      for p, label in ipairs({ "right", "left" }) do
+        local parts = {}
+        for i = 1, 8 do
+          if (maxes[p][i] or 0) > 0.3 then table.insert(parts, ("%d %s %.2f"):format(i, tostring(names[i]), maxes[p][i])) end
+        end
+        table.insert(out, label .. ": " .. (#parts > 0 and table.concat(parts, ", ") or "nothing"))
       end
-      local line = #parts > 0 and table.concat(parts, ", ") or "no pad state seen"
+      local line = table.concat(out, " | ")
       YB:Global().stickReport = { at = date and date("%Y-%m-%d %H:%M") or "", result = line }
       if done then done(true, "Stick check: " .. line) end
+    end)
+  return true, "Stick check: follow the big text (12 s)."
+end
+
+-- Trigger check: is there anything the game's secure code can see while ZL / ZR are held?
+-- If one of these changes with the triggers, YB can give L1 / R1 the wheels only while a trigger
+-- is held and hand them back to Forever's targeting on release. Read only: it watches.
+local CONDITIONS = { "bar:1", "bar:2", "bar:3", "bar:4", "bar:5", "bar:6", "actionbar:1", "actionbar:2",
+  "actionbar:3", "actionbar:4", "actionbar:5", "actionbar:6", "bonusbar", "bonusbar:1", "bonusbar:5",
+  "overridebar", "possessbar", "vehicleui", "mod", "mod:shift", "mod:ctrl", "mod:alt", "stance:0", "form:0" }
+local hooked, watching, attrNow = {}, false, nil
+local function hookAttributes(frame, depth)
+  if not frame or hooked[frame] or depth > 6 then return end
+  if frame.IsProtected and frame:IsProtected() and frame.HookScript then
+    hooked[frame] = true
+    pcall(frame.HookScript, frame, "OnAttributeChanged", function(self, name, value)
+      -- the game changes an attribute once, when you press: keep its latest value, sampled per phase
+      if watching and attrNow then
+        local key = (self:GetName() or (self.GetDebugName and self:GetDebugName()) or "?") .. "." .. tostring(name)
+        attrNow[key] = tostring(value)
+      end
+    end)
+  end
+  if frame.GetChildren then
+    for _, child in ipairs({ frame:GetChildren() }) do hookAttributes(child, depth + 1) end
+  end
+end
+function YB:TriggerCheck(done)
+  if YB.InCombat() then return false, "Leave combat first." end
+  if YB.checkFrame and YB.checkFrame:GetScript("OnUpdate") then return false, "A check is already running." end
+  if not padState() then return false, "No pad seen: press a button on the Switch first." end
+  hookAttributes(_G.GamepadMainActionBarFrame, 0)
+  if EnumerateFrames then
+    local fr = EnumerateFrames()
+    while fr do
+      local n = fr.GetName and fr:GetName()
+      if n and (n:find("Gamepad") or n:find("ActionBar")) then hookAttributes(fr, 3) end
+      fr = EnumerateFrames(fr)
     end
-  end)
-  return true, "Stick check running for 10 s: push the RIGHT stick all around, then the LEFT stick."
+  end
+  local nHooked = 0
+  for _ in pairs(hooked) do nHooked = nHooked + 1 end
+  attrNow = {}
+  watching = true
+  local seen = { {}, {}, {}, {} }   -- per phase: signal -> set of values
+  local held = { {}, {}, {}, {} }
+  local function note(p, key, v) seen[p][key] = seen[p][key] or {}; seen[p][key][tostring(v)] = true end
+  runPhases({ { "Hold ZL", 5 }, { "Hold ZR", 5 }, { "Hold ZL + ZR", 5 }, { "Let go of everything", 5 } },
+    function(p, st)
+      watching = p
+      held[p].lt = (held[p].lt or 0) + (padDown(st, "PADLTRIGGER") and 1 or 0)
+      held[p].rt = (held[p].rt or 0) + (padDown(st, "PADRTRIGGER") and 1 or 0)
+      held[p].n = (held[p].n or 0) + 1
+      for k, v in pairs(attrNow) do note(p, "attr " .. k, v) end
+      if GetActionBarPage then note(p, "page", GetActionBarPage()) end
+      if GetBonusBarOffset then note(p, "bonus", GetBonusBarOffset()) end
+      if SecureCmdOptionParse then
+        for _, c in ipairs(CONDITIONS) do
+          local ok, r = pcall(SecureCmdOptionParse, "[" .. c .. "] 1; 0")
+          note(p, "[" .. c .. "]", ok and r or "err")
+        end
+      end
+    end,
+    function()
+      watching = false
+      local function vals(t) local l = {} for v in pairs(t or {}) do table.insert(l, v) end table.sort(l) return table.concat(l, "/") end
+      local lines, found = {}, {}
+      for p, label in ipairs({ "ZL", "ZR", "both", "none" }) do
+        local h = held[p]
+        table.insert(lines, ("%s: ZL held %d%%, ZR held %d%%"):format(label, math.floor(100 * (h.lt or 0) / math.max(1, h.n or 1)),
+          math.floor(100 * (h.rt or 0) / math.max(1, h.n or 1))))
+      end
+      local keys = {}
+      for p = 1, 4 do for k in pairs(seen[p]) do keys[k] = true end end
+      for k in pairs(keys) do
+        local a, b, c, d = vals(seen[1][k]), vals(seen[2][k]), vals(seen[3][k]), vals(seen[4][k])
+        if not (a == d and b == d and c == d) then table.insert(found, ("%s  ZL=%s ZR=%s both=%s none=%s"):format(k, a, b, c, d)) end
+      end
+      table.sort(found)
+      table.insert(lines, ("%d protected frames watched; %d signals changed:"):format(nHooked, #found))
+      for i = 1, math.min(#found, 60) do table.insert(lines, found[i]) end
+      YB:Global().triggerReport = { at = date and date("%Y-%m-%d %H:%M") or "", lines = lines }
+      attrNow = nil
+      if done then done(true, ("Trigger check done: %d signals changed with the triggers. Saved for Claude."):format(#found)) end
+    end)
+  return true, "Trigger check: follow the big text (20 s)."
 end
 
 ---------------------------------------------------------------- automatic mode on screen change

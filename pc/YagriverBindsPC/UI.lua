@@ -267,12 +267,19 @@ buildDevice = function()
     end))
     add(rs.text); rs:SetPoint("TOPLEFT", 0, y); rs:SetChecked(mode.stickCamera)
     y = y - 28
-    local stb = add(button(device, "Stick check (10 s)", 150, 24)); stb:SetPoint("TOPLEFT", 0, y)
-    tip(stb, "For the coming wheels: shows which of the game's sticks move. Push the right stick around, then the left.")
-    stb:SetScript("OnClick", function() run(function() return YB:StickCheck(function(ok, msg) say(msg, not ok) end) end) end)
+    local stb = add(button(device, "Stick check (12 s)", 150, 24)); stb:SetPoint("TOPLEFT", 0, y)
+    tip(stb, "For the coming wheels: which of the game's sticks move. Follow the big text: right stick, then left.")
+    stb:SetScript("OnClick", function() run(function() return YB:StickCheck(function(ok, msg) say(msg, not ok); buildDevice() end) end) end)
     local rep = g.stickReport
     local sl = add(label(device, "|cff888888" .. (rep and ("Last: " .. rep.result) or "Not run yet.") .. "|r", "GameFontHighlightSmall"))
     sl:SetPoint("LEFT", stb, "RIGHT", 10, 0); sl:SetWidth(W - 220)
+    y = y - 28
+    local tcb = add(button(device, "Trigger check (20 s)", 150, 24)); tcb:SetPoint("TOPLEFT", 0, y)
+    tip(tcb, "For the coming wheels: looks for a sign the game gives while ZL / ZR are held. Out of combat. Follow the big text.")
+    tcb:SetScript("OnClick", function() run(function() return YB:TriggerCheck(function(ok, msg) say(msg, not ok); buildDevice() end) end) end)
+    local tr = g.triggerReport
+    local tl = add(label(device, "|cff888888" .. (tr and ("Last: " .. tr.at .. ", " .. (tr.lines[5] or "")) or "Not run yet.") .. "|r", "GameFontHighlightSmall"))
+    tl:SetPoint("LEFT", tcb, "RIGHT", 10, 0); tl:SetWidth(W - 220)
   end
 end
 

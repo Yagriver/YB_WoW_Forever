@@ -262,15 +262,51 @@ ex('LOADED.EasyController = true')
 c = yb("Conflicts")
 check(len(list(c.values())) == 1, "Easy Controller reported as a conflict")
 
-# 11. stick check
+# 11. stick check, phased: right then left
+ex('STICKS = {stickCount = 6, buttons = {}, sticks = {{x=0,y=0},{x=0,y=0},{x=0,y=0},{x=0,y=0},{x=0,y=0},{x=0,y=0}}}')
 ok, msg = yb("StickCheck", None)
-ex('STICKS = {stickCount = 6, sticks = {{x=0,y=0},{x=0.9,y=0.1},{x=0,y=0},{x=0,y=0},{x=0,y=0},{x=0.8,y=0}}}')
-fr = YB.stickFrame
-upd = L.eval("function(f) for i = 1, 120 do if f.scripts.OnUpdate then f.scripts.OnUpdate(f, 0.1) end end end")
-upd(fr)
+check(ok, "stick check starts")
+fr = YB.checkFrame
+step = L.eval("function(f, n) for i = 1, n do if f.scripts.OnUpdate then f.scripts.OnUpdate(f, 0.1) end end end")
+ex('STICKS.sticks[2] = {x=0.9,y=0.1}; STICKS.sticks[6] = {x=0.8,y=0}')
+step(fr, 60)
+ex('STICKS.sticks[2] = {x=0,y=0}; STICKS.sticks[6] = {x=0,y=0}; STICKS.sticks[1] = {x=0,y=1}; STICKS.sticks[5] = {x=0,y=0.95}')
+step(fr, 70)
 rep = g.YagriverBindsPCDB.stickReport
-check(rep is not None and "2 Right 0.90" in str(rep.result) and "6 Camera 0.80" in str(rep.result), "stick check report: " + (str(rep.result) if rep else "none"))
+check(rep is not None and str(rep.result) == "right: 2 Right 0.90, 6 Camera 0.80 | left: 1 Left 1.00, 5 x 0.95", "phased stick report: " + (str(rep.result) if rep else "none"))
 
+# 11b. trigger check: the bar page follows ZL in this stub, and a protected frame's attribute follows ZR
+ex('''
+PAGE = 1
+function GetActionBarPage() return PAGE end
+function GetBonusBarOffset() return 0 end
+function SecureCmdOptionParse(s) if s:find("%[bar:2%]") then return PAGE == 2 and "1" or "0" end return "0" end
+STICKS.buttons = {}
+GamepadMainActionBarFrame = NEW("GamepadMainActionBarFrame")
+function GamepadMainActionBarFrame:IsProtected() return true end
+function GamepadMainActionBarFrame:GetName() return "GamepadMainActionBarFrame" end
+function C_GamePad.ButtonBindingToIndex(b) return ({PADLTRIGGER = 14, PADRTRIGGER = 15})[b] end
+function SETTRIG(lt, rt)
+  STICKS.buttons[15] = lt or nil; STICKS.buttons[16] = rt or nil
+  PAGE = lt and 2 or 1
+  local h = GamepadMainActionBarFrame.hooks.OnAttributeChanged
+  if h then for _, f in ipairs(h) do f(GamepadMainActionBarFrame, "state-layer", rt and "rt" or "none") end end
+end
+''')
+ok, msg = yb("TriggerCheck", None)
+check(ok, "trigger check starts")
+fr = YB.checkFrame
+ex('SETTRIG(true, false)'); step(fr, 50)
+ex('SETTRIG(false, true)'); step(fr, 50)
+ex('SETTRIG(true, true)'); step(fr, 50)
+ex('SETTRIG(false, false)'); step(fr, 55)
+tr = g.YagriverBindsPCDB.triggerReport
+lines = [str(x) for x in tr.lines.values()] if tr else []
+print("   " + "\n   ".join(lines))
+check(any(l.startswith("[bar:2]  ZL=1") for l in lines), "finds [bar:2] following ZL")
+check(any(l.startswith("page  ZL=2") for l in lines), "finds the bar page following ZL")
+check(any(l.startswith("attr GamepadMainActionBarFrame.state-layer  ZL=none ZR=rt") for l in lines), "finds the attribute following ZR")
+check(any(l.startswith("ZL: ZL held") for l in lines), "reports how long each trigger was held")
 
 # 13. window: every tab builds without errors, in both modes, druid and not
 ex('LOG = {}')
