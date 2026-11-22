@@ -3,10 +3,11 @@
 Controller and keybind setup for WoW: Forever, built around a Night Elf druid.
 Two editions, one per machine. They never share settings.
 
-| Edition | Folder | Machine | Modes | Status |
-| --- | --- | --- | --- | --- |
-| Deck | `deck/` | Steam Deck OLED | Handheld, Docked | v5.5 ready (v5.4 installed) |
-| PC | `pc/` | Gaming PC (Windows) | PC (21:9 desk), Switch (Moonlight, 1080p) | Planned |
+| Folder | What | Status |
+| --- | --- | --- |
+| `addon/` | **YagriverBinds 6**: one addon, device PC (PC / Moonlight) or Steam Deck (Deck / Dock), prepares Easy Controller | 6.0: PC device; Deck device in 6.1 |
+| `deck/` | Deck edition 5.5 and the Steam Input layout | 5.4 installed on the Deck |
+| `pc/` | PC edition 1.1 and YB Probe (superseded by 6.0) | history |
 
 ## Layout
 

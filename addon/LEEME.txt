@@ -1,0 +1,38 @@
+Yagriver Binds 6.0 (PC)
+=======================
+
+Un solo addon para el PC y, desde la 6.1, para la Steam Deck. En el PC: modos PC y Moonlight,
+armas, y el boton "Preparar Easy Controller".
+
+Instalar
+  1. Instala Easy Controller - Forever 1.24 (CurseForge o su zip) si no lo tienes.
+  2. Doble clic en install_pc.bat: pone YagriverBinds y quita YagriverBindsPC y YBProbe.
+  3. Entra en WoW. La ventana de YB se abre sola: elige "PC".
+
+En el escritorio (teclado)
+  1. Armas: ponte cada conjunto y pulsa "Usar equipado". Luego "Elegir tecla" para cada uno (tus 6 y 7).
+  2. Dispositivo: escala del modo PC y, si quieres, su diseño de Edit Mode.
+  Nota: los ajustes de YagriverBindsPC no pasan solos a la 6.0; son esas cuatro cosas.
+
+En la Switch (Moonlight)
+  1. Arranca el stream con WoW abierto: el aviso cambia a Moonlight en 6 s (o entra ya en streaming).
+  2. Dispositivo: escala, diseño de Edit Mode y aviso de arma para esta pantalla.
+  3. Easy Controller: mira la lista, pulsa "Preparar Easy Controller" y luego "CONFIRMAR" (dos clics).
+     Despues, "Recargar interfaz".
+  4. Prueba: ZL + ZR + abajo / izquierda / arriba / derecha abren Emergencias, Formas, Utilidad y
+     Habilidades. R3 y ZL / ZR / ZL + ZR + R3 abren el modo sanador.
+  5. "Deshacer" deja Easy Controller como estaba antes de YB.
+
+Lista de pruebas
+  [ ] Escritorio: modo PC al entrar, teclas 6 y 7 cambian de arma, el aviso muestra la tecla.
+  [ ] Switch: modo Moonlight solo, su escala, su diseno.
+  [ ] Las cuatro ruedas se abren y lanzan, tambien en combate. En las mini ruedas: suelta el stick derecho.
+  [ ] Gato -> Acecho: primera pulsacion gato, segunda acecho. Igual Carrera y Enfurecer.
+  [ ] Sanador: R3 abre tu grupo; empuja el stick derecho hacia alguien y suelta.
+  [ ] Utilidad: piedra, montura, frases rapidas, consumibles, ajustes de YB y de Easy Controller.
+  [ ] Ping desde la rueda (si Forever no tiene /ping, dimelo y lo cambio).
+  [ ] Moonlight: comprueba si "abajo" es el boton de abajo de tu Switch (si A/B estan cambiados).
+  [ ] Volver al escritorio: modo PC, teclado, tu escala.
+
+Mandame despues
+  WTF\Account\<CUENTA>\SavedVariables\YagriverBinds.lua y, si algo falla, EasyController.lua.
