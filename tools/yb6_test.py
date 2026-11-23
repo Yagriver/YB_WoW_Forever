@@ -2,90 +2,12 @@
 Usage: python3 tools/yb6_test.py addon/YagriverBinds
 """
 import sys, os
-from lupa import lua51
 
 base = sys.argv[1]
 here = os.path.dirname(os.path.abspath(__file__))
-L = lua51.LuaRuntime(unpack_returned_tuples=True)
-L.execute(open(os.path.join(here, "_stub_base.lua"), encoding="utf-8").read())
-L.execute(r'''
-UISpecialFrames = {}
-FIND = function(text) for _, o in ipairs(FRAMES) do if o.text == text then return o end end end
-function FINDATTR(k, v) local out = {} for _, o in ipairs(FRAMES) do if o.attr[k] == v then out[#out+1] = o end end return out end
--- spells: Spanish client, some ranks known
-NAMES = { [768] = "Forma felina", [5487] = "Forma de oso", [9634] = "Forma de oso temible", [1066] = "Forma acuática",
-  [783] = "Forma de viaje", [5215] = "Acecho", [1850] = "Carrera", [5229] = "Enfurecer", [29166] = "Enervar",
-  [22812] = "Pielcorteza", [16689] = "Gracia de la naturaleza", [774] = "Rejuvenecimiento", [1058] = "Rejuvenecimiento",
-  [1430] = "Rejuvenecimiento", [20484] = "Renacer", [2782] = "Deshacer maldición", [2893] = "Suprimir veneno",
-  [8946] = "Curar veneno", [1126] = "Marca de lo salvaje", [5232] = "Marca de lo salvaje", [8936] = "Recrecimiento",
-  [5185] = "Toque de sanación", [5176] = "Cólera", [8921] = "Fuego lunar", [339] = "Raíces enredadoras",
-  [770] = "Fuego feérico", [467] = "Espinas", [18960] = "Teletransporte: Claro de la Luna", [458] = "Caballo marrón" }
-KNOWN = { [768] = true, [5487] = true, [1066] = true, [5215] = true, [1850] = true, [5229] = true, [22812] = true,
-  [16689] = true, [774] = true, [1058] = true, [20484] = true, [2782] = true, [8946] = true, [1126] = true, [5232] = true,
-  [8936] = true, [5185] = true, [5176] = true, [8921] = true, [339] = true, [770] = true, [467] = true, [18960] = true }
-BEST = { ["Rejuvenecimiento"] = 1058, ["Marca de lo salvaje"] = 5232 }
-C_Spell = { GetSpellName = function(id) return NAMES[id] end,
-  GetSpellInfo = function(x) if type(x) == "string" then local id = BEST[x]; if not id then for k, v in pairs(NAMES) do if v == x and KNOWN[k] then id = k end end end return id and { spellID = id } end return NAMES[x] and { spellID = x, name = NAMES[x] } end }
-function IsPlayerSpell(id) return KNOWN[id] or false end
--- macros
-MACROS, MACRO_ORDER = {}, {}
-function GetMacroIndexByName(n) return MACROS[n] and MACROS[n].idx or 0 end
-function GetMacroBody(n) return MACROS[n] and MACROS[n].body end
-function GetMacroInfo(i) if type(i) == "string" then local m = MACROS[i]; return m and i, "icon", m and m.body end local n = MACRO_ORDER[i]; return n, "icon", n and MACROS[n].body end
-local nextIdx = 1
-function CreateMacro(n, icon, body, perChar) assert(not COMBAT) assert(#n <= 16, "name too long " .. n) assert(#body <= 255) MACROS[n] = { idx = nextIdx, body = body, perChar = perChar }; MACRO_ORDER[nextIdx] = n; nextIdx = nextIdx + 1 return nextIdx - 1 end
-function EditMacro(idx, n, icon, body) assert(not COMBAT) for k, v in pairs(MACROS) do if v.idx == idx then v.body = body end end end
-CreateMacro("YB Travel", "x", "#showtooltip\n/cast [swimming] Forma acuática; Forma de viaje", true)  -- came from the Deck
-function SetOverrideBindingMacro(owner, prio, key, macro) assert(not COMBAT) OVERRIDES[key] = "MACRO " .. macro end
-SAVED["CTRL-F9"] = "MULTIACTIONBAR5BUTTON12"
-function GetActionInfo(slot) if slot == 156 then return "spell", 458 end end
--- fake Easy Controller 1.24
-local S = { mapping = {}, replaced = { ["A:LTRT"] = "spell:999" }, modules = { sellJunk = false }, features = {}, reticle = { mode = "game" }, glyphStyle = "auto", myWheels = { list = {} } }
-ECS = S
-ECV = "1.24.0"
-C_AddOns.GetAddOnMetadata = function(a, f) if a == "EasyController" and f == "Version" then return ECV end end
-LOADED.EasyController = true
-PUTS = {}
-local MW = {}
-function MW:List() return S.myWheels.list end
-function MW:Get(id) for _, w in ipairs(S.myWheels.list) do if w.id == id then return w end end end
-function MW:Create() local used = {} for _, w in ipairs(S.myWheels.list) do used[w.id] = true end for id = 1, 8 do if not used[id] then table.insert(S.myWheels.list, { id = id, name = "Rueda " .. id, slots = {} }) return id end end end
-function MW:Rename(id, n) self:Get(id).name = n end
-function MW:SetSlot(id, i, a) self:Get(id).slots[i] = a end
-function MW:SetStyle(id, st) self:Get(id).style = st return 0 end
-function MW:Delete(id) for i, w in ipairs(S.myWheels.list) do if w.id == id then table.remove(S.myWheels.list, i) end end for k, v in pairs(S.replaced) do if v == "wheel:" .. id then S.replaced[k] = nil end end end
-local M = { BY_ID = { A = { id = "A" }, B = { id = "B" }, X = { id = "X" }, Y = { id = "Y" }, R3 = { id = "R3" } } }
-function M:Enabled() return true end
-function M:SetReplaced(i, l, a) S.replaced[i .. ":" .. l] = a end
-function M:Apply() end
-local Page = {}
-function Page:Put(input, layer, action)
-  assert(not COMBAT, "Put in combat")
-  table.insert(PUTS, input.id .. ":" .. layer .. "=" .. action)
-  -- R3's trigger layers stay locked until R3 alone holds something of ours
-  if input.id == "R3" and layer ~= "" and not S.replaced["R3:"] then return false end
-  S.replaced[input.id .. ":" .. layer] = action
-  return true
-end
-ControllerKeyboard = { db = { settings = S }, Mapping = M, MapPage = Page, MyWheels = MW, Paddles = { Apply = function() end },
-  Range = { Apply = function() RANGE_APPLIED = true end }, QuietErrors = { Apply = function() QE_APPLIED = true end },
-  Reticle = { SetMode = function(self, m) S.reticle.mode = m end } }
-function ControllerKeyboard:PickGlyphStyle(st) S.glyphStyle = st return true end
-''')
-
-YB = L.eval("{}")
-load = L.eval("function(code, name, yb) local f, e = loadstring(code, name); assert(f, e); f('YagriverBinds', yb) end")
-for line in open(os.path.join(base, "YagriverBinds.toc"), encoding="utf-8").read().split("\n"):
-    line = line.strip()
-    if line.endswith(".lua"):
-        load(open(os.path.join(base, line), encoding="utf-8").read(), line, YB)
-g = L.globals(); ex = L.execute; ev = L.eval
-call = ev("function(yb, m, ...) return yb[m](yb, ...) end")
-def yb(m, *a): return call(YB, m, *a)
-ecall = ev("function(yb, m, ...) return yb.EC[m](yb.EC, ...) end")
-def ec(m, *a):
-    r = ecall(YB, m, *a)
-    return r if isinstance(r, tuple) or m not in ("Ready", "Apply", "Undo") else (r, None)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _yb6_world import build
+L, YB, g, ex, ev, yb, ec = build(base)
 fails = []
 def check(cond, what):
     print(("PASS " if cond else "FAIL ") + what)
@@ -100,11 +22,9 @@ check(g.CVARS["InputDeviceInterfaceStyle"] == "0" and g.RELOADS == 0, "nothing c
 # 2. choose PC at the desk
 ok, msg = yb("SetDevice", "pc")
 check(ok and yb("ModeKey") == "pc", "PC device, PC mode at 3440x1440")
-ok, msg = yb("SetDevice", "deck")
-check(ok and "6.1" in str(msg), "Deck says it comes in 6.1")
 ok, msg = yb("ApplyMode", "deck")
-check(not ok, "no Deck modes yet")
-yb("SetDevice", "pc")
+check(not ok, "PC device refuses Deck modes")
+check(str(g.SAVED["F1"]) == "MACRO YB Travel" and g.SAVES == 0, "PC never touches the Deck's saved keys")
 
 # 3. weapons: captured sets write the shared macros
 ok, msg = yb("CaptureWeapons", "caster")
@@ -157,10 +77,12 @@ check(str(R["A:LTRT"]) == "wheel:%d" % em.id and str(R["X:LTRT"]) == "wheel:%d" 
 check(str(R["R3:"]) == "wheel:party:1058" and str(R["R3:LT"]) == "wheel:party:8936" and str(R["R3:RT"]) == "wheel:party:5185" and str(R["R3:LTRT"]) == "wheel:party:20484", "healer on R3 layers, best ranks")
 puts = [str(x) for x in g.PUTS.values()]
 check(puts.index("R3:=wheel:party:1058") < puts.index("R3:LT=wheel:party:8936"), "R3 alone is set before its trigger layers")
-check(S.modules.sellJunk == True and S.modules.autoRepair == True and S.features.rangeTint == True and S.features.quietErrors == True, "options on")
-check(g.RANGE_APPLIED == True and g.QE_APPLIED == True, "options applied by Easy Controller's own functions")
+check(S.modules.sellJunk == True and S.modules.autoRepair == True and S.features.rangeTint is None and S.features.quietErrors == True, "options on, range tint left alone")
+check(g.QE_APPLIED == True, "options applied by Easy Controller's own functions")
 check(str(S.glyphStyle) == "switch" and str(S.reticle.mode) == "cycle", "Switch labels and OLED dot on the PC")
-check(str(g.MACROS["YB Cat Prowl"].body) == "#showtooltip Acecho\n/cast !Forma felina\n/cast Acecho", "two-step macro in Spanish")
+check(str(g.MACROS["YB Cat Prowl"].body) == "#showtooltip Acecho\n/cast [noform:3] Forma felina; Acecho", "Prowl: cat form if not in it, else Prowl")
+check(str(g.MACROS["YB Bear Enrage"].body) == "#showtooltip Enfurecer\n/cast [noform:1] Forma de oso; Enfurecer", "Enrage: bear index 1")
+check(str(g.MACROS["YB Ping"].body) == "/aviso [@target,exists][]", "ping uses the client's own command (/aviso in Spanish)")
 check(str(g.MACROS["YB Travel"].body) == "#showtooltip\n/cast [swimming] Forma acuática; Forma de viaje", "Deck's YB Travel left as it was")
 check("ControllerKeyboardPhrasesToggle LeftButton true" in str(g.MACROS["YB EC Frases"].body), "quick phrases macro")
 check(g.MACROS["YB Rejuv Self"] is not None, "YB Rejuv Self created when missing")
@@ -172,6 +94,14 @@ ec("Apply")
 check(len(list(S.myWheels.list.values())) == n_before, "running it again makes no new wheels")
 b = g.YagriverBindsCharDB.ec
 check(str(b.replaced["A:LTRT"]) == "spell:999", "backup keeps what A had before YB")
+
+# 7b. forms change (Travel learned before Cat): macros follow the new index
+ex('FORMS = { 5487, 1066, 783, 768 }; FIRE("UPDATE_SHAPESHIFT_FORMS")')
+check(str(g.MACROS["YB Cat Prowl"].body) == "#showtooltip Acecho\n/cast [noform:4] Forma felina; Acecho", "Prowl macro follows the cat's new index")
+ex('FORMS = { 5487, 1066, 768 }; FIRE("UPDATE_SHAPESHIFT_FORMS")')
+# 7c. a 6.0 install that turned range tint on: 6.1 turns it off again at login
+ex('ECS.features.rangeTint = true; YagriverBindsCharDB.ec.options["features.rangeTint"] = false; FIRE("PLAYER_LOGIN"); ADVANCE(2)')
+check(g.ECS.features.rangeTint == False and g.YagriverBindsCharDB.ec.options["features.rangeTint"] is None, "6.0's range tint switched back off")
 
 # 8. a new rank is learned
 ex('KNOWN[1430] = true; BEST["Rejuvenecimiento"] = 1430; FIRE("SPELLS_CHANGED"); ADVANCE(2.5)')
@@ -188,7 +118,7 @@ ok, msg = ec("Undo")
 check(ok, "undo")
 check(len(list(S.myWheels.list.values())) == 0, "YB wheels deleted")
 check(str(S.replaced["A:LTRT"]) == "spell:999" and S.replaced["R3:"] is None and S.replaced["X:LTRT"] is None, "buttons back as they were")
-check(S.modules.sellJunk == False and S.modules.autoRepair is None and S.features.rangeTint is None, "options back")
+check(S.modules.sellJunk == False and S.modules.autoRepair is None and S.features.rangeTint == False, "options back")
 check(str(S.glyphStyle) == "auto" and str(S.reticle.mode) == "game", "labels and dot back")
 check(g.YagriverBindsCharDB.ec is None and ec("Applied") == False, "nothing left to undo")
 
@@ -196,15 +126,15 @@ check(g.YagriverBindsCharDB.ec is None and ec("Applied") == False, "nothing left
 ex('LOG = {}')
 for dev in ("pc", "deck", None):
     ex('YagriverBindsDB.device = %s' % (('"%s"' % dev) if dev else "nil"))
-    for t in ("Inicio", "Armas", "Dispositivo", "Easy Controller", "Comprobar"):
+    for t in ("Inicio", "Armas", "Dispositivo", "Easy Controller", "Comprobar", "Mapa de la Deck"):
         ex('local o = FIND("%s"); if o and o.scripts.OnClick then o.scripts.OnClick(o) end' % t)
 check(not ev('LOGHAS("Error:")'), "every tab builds for PC, Deck and no device")
 ex('YagriverBindsDB.device = "pc"')
 
 # 12. never saves bindings, never deletes macros
-src = "".join(open(os.path.join(base, f), encoding="utf-8").read() for f in os.listdir(base) if f.endswith(".lua"))
+src = "".join(open(os.path.join(base, f), encoding="utf-8").read() for f in os.listdir(base) if f.endswith(".lua") and f != "Deck.lua")
 for bad in ["SaveBindings", "DeleteMacro", "SetBinding(", "SetBindingClick(", "SetBindingSpell", "SetBindingMacro("]:
-    check(bad not in src, "never calls " + bad)
+    check(bad not in src, "never calls " + bad + " (outside the Deck cleanup)")
 
 print("\n%d failures" % len(fails))
 sys.exit(1 if fails else 0)

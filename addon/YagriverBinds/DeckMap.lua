@@ -1,50 +1,62 @@
--- Yagriver Binds - Deck map tab: what every Steam Deck control does, in three views.
--- Pictures live in Media\ (front/back of the Deck, menu icons). Edit the texts in LABELS / VIEWS.
+-- Yagriver Binds 6 - pestaña "Mapa de la Deck": qué hace cada control de la Steam Deck, en cuatro vistas.
+-- Fotos en Media\ (frente y espalda de la Deck, iconos de los menús). Los textos están en LABELS / VIEWS.
 local ADDON, YB = ...
 
 local MEDIA = "Interface\\AddOns\\YagriverBinds\\Media\\"
 local GOLD = { 1, 0.82, 0 }
-local HOLD = "|cff9fd0ffHold|r"           -- WoW text can't be italic: "Hold" gets its own color
+local HOLD = "|cff9fd0ffMantener|r"     -- el texto de WoW no tiene cursiva: "Mantener" va en otro color
 
--- Control positions measured on the source images (front 1729x674, back mirrored 1720x657)
+-- Posiciones de los controles medidas en las fotos (frente 1729x674, espalda en espejo 1720x657)
 local FRONT = { L1 = { 218, 12 }, L2 = { 120, 8 }, R1 = { 1508, 12 }, R2 = { 1610, 8 },
   SE = { 250, 72 }, ST = { 1478, 72 }, DP = { 118, 152 }, LST = { 278, 182 }, AB = { 1618, 146 },
   RST = { 1453, 182 }, LP = { 238, 372 }, RP = { 1493, 372 } }
 local BACK = { L4 = { 248, 275 }, L5 = { 260, 433 }, R4 = { 1473, 274 }, R5 = { 1460, 432 } }
 local FRONT_W, FRONT_H, BACK_W, BACK_H = 1729, 674, 1720, 657
 
--- Normal view (Combat set, nothing held). Lines starting with "Hold" get the Hold color.
+-- Vista normal (juego Combate, nada mantenido). Las líneas que empiezan por "Mantener" van en su color.
 local LABELS = {
-  L1 = { "L1", "Target friend" }, L2 = { "L2", "Skill modifier", "Hold + left pad = party" },
-  SE = { "View (Select)", "Focus menu", "Hold = switch to Town" }, DP = { "D-pad", "Skills" },
-  LST = { "Left stick", "Move" }, LP = { "Left pad", "Scroll", "Click = right click" },
-  R1 = { "R1", "Target enemy" }, R2 = { "R2", "Skill modifier" }, ST = { "Menu (Start)", "Game menu" },
-  AB = { "A B X Y", "Skills" }, RST = { "Right stick", "Camera" }, RP = { "Right pad", "Mouse", "Click = left click" },
-  L4 = { "L4", "Travel / Aquatic", "Hold = Dash" }, L5 = { "L5", "Bear", "Hold = Enrage" },
-  R4 = { "R4", "Cat", "Hold = Prowl" }, R5 = { "R5", "Hold = R5 layer" },
+  L1 = { "L1", "Apuntar a aliado" }, L2 = { "L2", "Modificador", "Mantener + pad izq.: grupo" },
+  SE = { "Vista (Select)", "Menú de foco", "Mantener = juego Ciudad" }, DP = { "Cruceta", "Habilidades" },
+  LST = { "Stick izquierdo", "Moverse", "Clic = autocorrer" }, LP = { "Pad izquierdo", "Desplazar", "Clic = clic derecho" },
+  R1 = { "R1", "Apuntar a enemigo" }, R2 = { "R2", "Modificador" }, ST = { "Menú (Start)", "Menú del juego" },
+  AB = { "A B X Y", "Habilidades" }, RST = { "Stick derecho", "Cámara", "Clic = ping" },
+  RP = { "Pad derecho", "Ratón", "Clic = clic izquierdo" },
+  L4 = { "L4", "Viaje / Acuática", "Mantener = Carrera" }, L5 = { "L5", "Oso", "Mantener = Enfurecer" },
+  R4 = { "R4", "Gato", "Mantener = Acecho" }, R5 = { "R5", "Mantener = capa R5" },
 }
--- Other views: only what changes (shown in gold, the rest dimmed)
+-- Con Easy Controller preparado, R3 es el modo sanador
+local RST_EC = { "Stick derecho", "Cámara", "Clic = modo sanador" }
+-- Otras vistas: solo lo que cambia (en dorado, el resto atenuado)
 local VIEWS = {
-  { id = "normal", button = "Normal", caption = "Combat set, nothing held", change = {} },
-  { id = "r5", button = "Hold R5", caption = "While holding R5", change = {
-    AB = { "A B X Y", "A = Rebirth", "B = Remove Curse", "X = Abolish Poison", "Y = Mark of the Wild" },
-    DP = { "D-pad", "Up = Hearthstone", "Down = type in chat", "Left = caster weapon", "Right = feral weapon" },
-    LP = { "Left pad", "Windows menu", "(see screen)" }, RP = { "Right pad", "Emergencies menu", "(see screen)" },
-    R5 = { "R5", "Held" } } },
-  { id = "town", button = "Town set", caption = "Town set: only the differences", change = {
-    L4 = { "L4", "Travel / Aquatic", "Hold = Ctrl" }, L5 = { "L5", "Bear", "Hold = Shift" },
-    SE = { "View (Select)", "Focus menu", "Hold = back to Combat" } } },
+  { id = "normal", button = "Normal", caption = "Juego Combate, sin mantener nada", change = {} },
+  { id = "r5", button = "Mantener R5", caption = "Mientras mantienes R5", change = {
+    AB = { "A B X Y", "A = Renacer", "B = Deshacer maldición", "X = Suprimir veneno", "Y = Marca de lo salvaje" },
+    DP = { "Cruceta", "Arriba = Piedra de hogar", "Abajo = escribir en el chat", "Izq. = arma de lanzador", "Der. = arma feral" },
+    LP = { "Pad izquierdo", "Menú de ventanas", "(ver pantalla)" }, RP = { "Pad derecho", "Menú de emergencias", "(ver pantalla)" },
+    R5 = { "R5", "Mantenido" } } },
+  { id = "ec", button = "L2 + R2", caption = "Easy Controller: mantén L2 + R2 y pulsa", change = {
+    AB = { "A B X Y", "A = Emergencias", "B = Habilidades", "X = Formas", "Y = Utilidad" },
+    RST = { "Stick derecho", "Apunta en la rueda", "Clic (R3) = modo sanador" },
+    L2 = { "L2", "Mantenido" }, R2 = { "R2", "Mantenido" } } },
+  { id = "town", button = "Juego Ciudad", caption = "Juego Ciudad: solo lo que cambia", change = {
+    L4 = { "L4", "Viaje / Acuática", "Mantener = Ctrl" }, L5 = { "L5", "Oso", "Mantener = Mayús" },
+    SE = { "Vista (Select)", "Menú de foco", "Mantener = vuelve a Combate" } } },
 }
 local LEFT_COL  = { "L2", "L1", "SE", "DP", "LST", "LP" }
 local RIGHT_COL = { "R2", "R1", "ST", "AB", "RST", "RP" }
-local SCREEN = {   -- what the console screen shows in each view
-  normal = { icons = { { "Hold L2 + left pad: party picker", { "yb_me", "yb_p1", "yb_p2", "yb_p3", "yb_p4" }, 5, 44 } },
-             text = { "Back buttons: tap = form, hold = extra.", "Hold R5 for emergencies and menus." } },
-  r5 = { icons = { { "Left pad menu", { "yb_map", "yb_bags", "yb_char", "yb_spells", "yb_talents", "yb_social",
+local SCREEN = {   -- lo que sale en la pantalla de la Deck en cada vista
+  normal = { icons = { { "L2 + pad izq.: elegir del grupo", { "yb_me", "yb_p1", "yb_p2", "yb_p3", "yb_p4" }, 5, 44 } },
+             text = { "Botones traseros: toque = forma, mantener = extra.", "Mantén R5 para emergencias y menús.",
+                      "L2 + R2 + botón: ruedas de Easy Controller." } },
+  r5 = { icons = { { "Menú del pad izquierdo", { "yb_map", "yb_bags", "yb_char", "yb_spells", "yb_talents", "yb_social",
                      "yb_prof", "yb_mount", "yb_panel", "yb_ybmenu" }, 4, 38 },
-                   { "Right pad menu", { "yb_innervate", "yb_barkskin", "yb_natures_grasp", "yb_rejuv_me" }, 2, 38 } } },
-  town = { title = "Town set", text = { "Only the L4 and L5 holds change:", "Ctrl and Shift, for Ctrl/Shift + click",
-           "(link items, split stacks).", " ", "Everything else = Combat set." } },
+                   { "Menú del pad derecho", { "yb_innervate", "yb_barkskin", "yb_natures_grasp", "yb_rejuv_me" }, 2, 38 } },
+         text = { "\"Chat + Prof.\" abre ahora las frases de Easy Controller." } },
+  ec = { title = "Ruedas de Easy Controller", text = { "Mantén L2 + R2 y pulsa A, X, Y o B.",
+         "Mini ruedas: apunta con el stick derecho y suelta.", "Utilidad (Y) es grande: elige con el stick.",
+         "R3 (también con L2, R2 o los dos): modo sanador." } },
+  town = { title = "Juego Ciudad", text = { "Solo cambian L4 y L5 mantenidos:", "Ctrl y Mayús, para Ctrl/Mayús + clic",
+           "(enlazar objetos, partir montones).", " ", "Todo lo demás = juego Combate." } },
 }
 
 -- Layout in UI units (page is about 972 x 446)
@@ -84,7 +96,7 @@ local function makeBox(page, key, side)
 end
 
 local function colorize(text)
-  if text:sub(1, 4) == "Hold" then return HOLD .. text:sub(5) end
+  if text:sub(1, 8) == "Mantener" then return HOLD .. text:sub(9) end
   return text
 end
 
@@ -92,7 +104,7 @@ end
 local function placeBox(page, key, x, y, ax, ay, view)
   local b = map.boxes[key]
   local change = view.change[key]
-  local data = change or LABELS[key]
+  local data = change or ((key == "RST" and YB.EC and YB.EC:Applied()) and RST_EC or LABELS[key])
   local changed, dim = change ~= nil, view.id ~= "normal" and change == nil
   local n = #data - 1
   local h = 18 + 13 * n
@@ -151,7 +163,9 @@ local function drawScreen(page, viewId)
   local icon, text = screenWidgets(page)
   local sx, sy = FX + 360 * fs, FY + 52 * fs     -- top-left of the console screen
   local cfg = SCREEN[viewId]
+  cfg.id = viewId
   local x = sx + 10
+  local iconsH = 0
   for _, grp in ipairs(cfg.icons or {}) do
     local title, names, cols, size = grp[1], grp[2], grp[3], grp[4]
     local t = text("GameFontNormalSmall"); t:ClearAllPoints(); t:SetPoint("TOPLEFT", page, "TOPLEFT", x, -(sy + 8)); t:SetText(title)
@@ -162,11 +176,16 @@ local function drawScreen(page, viewId)
       tex:SetPoint("TOPLEFT", page, "TOPLEFT", x + ((i - 1) % cols) * (size + 3), -(sy + 22 + math.floor((i - 1) / cols) * (size + 3)))
     end
     x = x + cols * (size + 3) + 22
+    iconsH = math.max(iconsH, 22 + math.ceil(#names / cols) * (size + 3))
   end
-  local ty = sy + ((cfg.icons and #cfg.icons > 0) and (22 + 48 + 14) or 14)
+  local ty = sy + ((iconsH > 0) and (iconsH + 12) or 14)
   if cfg.title then
     local t = text("GameFontNormal"); t:ClearAllPoints(); t:SetPoint("TOPLEFT", page, "TOPLEFT", sx + 14, -ty); t:SetText(cfg.title)
     ty = ty + 20
+  end
+  if cfg.id == "ec" and not (YB.EC and YB.EC:Applied()) then
+    cfg = { title = cfg.title, text = { cfg.text[1], cfg.text[2], cfg.text[3], cfg.text[4], " ",
+      "|cffffff00Aún sin preparar: pestaña Easy Controller.|r" } }
   end
   for _, l in ipairs(cfg.text or {}) do
     local t = text("GameFontHighlightSmall"); t:ClearAllPoints(); t:SetPoint("TOPLEFT", page, "TOPLEFT", sx + 14, -ty); t:SetText(l)
@@ -180,8 +199,8 @@ function YB:DeckMapBuild(page)
   map.page = page
   for i, v in ipairs(VIEWS) do
     local b = CreateFrame("Button", nil, page, "UIPanelButtonTemplate")
-    b:SetSize(100, 24); b:SetText(v.button)
-    b:SetPoint("TOPLEFT", (i - 1) * 106, 0)
+    b:SetSize(110, 24); b:SetText(v.button)
+    b:SetPoint("TOPLEFT", (i - 1) * 116, 0)
     b:SetScript("OnClick", function() YB:DeckMapShow(v.id) end)
     map.buttons[v.id] = b
   end
@@ -194,7 +213,7 @@ function YB:DeckMapBuild(page)
   back:SetTexture(MEDIA .. "deck_back"); back:SetTexCoord(0, 1, 0, 196 / 256)
   back:SetSize(BW, BACK_H * bs); back:SetPoint("TOPLEFT", page, "TOPLEFT", BX, -BY)
   local bt = fontString(page, "GameFontDisableSmall"); bt:SetPoint("BOTTOM", back, "TOP", 0, 3)
-  bt:SetText("back (seen through the front)")
+  bt:SetText("espalda (vista a través del frente)")
   for _, k in ipairs(LEFT_COL) do makeBox(page, k, "L") end
   for _, k in ipairs(RIGHT_COL) do makeBox(page, k, "R") end
   makeBox(page, "L4", "L"); makeBox(page, "L5", "L"); makeBox(page, "R4", "R"); makeBox(page, "R5", "R")

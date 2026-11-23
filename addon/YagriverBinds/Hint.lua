@@ -34,7 +34,10 @@ end
 
 -- segunda fila: cómo cambiar en el modo actual
 local function how(kind)
-  if YB.MODE_STYLE[YB:ModeKey()] == "1" then
+  if YB:Device() == "deck" then
+    return kind == "feral" and "R5 + cruceta derecha" or "R5 + cruceta izquierda"
+  end
+  if YB:StyleFor(YB:ModeKey()) == "1" then
     return (YB.EC and YB.EC:Applied()) and "ZL + ZR + X: Formas" or "/yag > Armas"
   end
   local key = YB:Global().keys[kind]

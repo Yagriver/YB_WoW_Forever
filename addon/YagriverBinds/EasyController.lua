@@ -32,7 +32,9 @@ function EC:Ready()
   end
   if ck.Mapping.Enabled and not ck.Mapping:Enabled() then return false, "Activa el módulo de mapeo en Easy Controller (Inicio)." end
   if YB.InCombat() then return false, "Sal del combate primero." end
-  if YB:InterfaceStyle() ~= "1" then return false, "Hazlo con la interfaz de mando activa (modo Moonlight)." end
+  if YB:InterfaceStyle() ~= "1" then
+    return false, "Hazlo con la interfaz de mando activa (modo " .. (YB:Device() == "deck" and "Deck" or "Moonlight") .. ")."
+  end
   return true
 end
 
@@ -84,9 +86,9 @@ function EC:Preview()
     local _, n = self:PartyAction(p)
     table.insert(lines, ("%s  sanador: %s"):format(combo(p.input, p.layer), n or "?"))
   end
-  table.insert(lines, "Opciones: vender lo gris, reparar, rojo fuera de alcance, ocultar errores de cada pulsación" ..
-    (YB:Device() == "pc" and ", letras de Switch, punto central que cambia de color (OLED)" or "") .. ".")
-  table.insert(lines, "R3 deja de hacer ping (el ping va en la rueda de Utilidad).")
+  table.insert(lines, "Opciones: vender lo gris, reparar, ocultar errores de cada pulsación, punto central que cambia de color (OLED)" ..
+    (YB:Device() == "pc" and ", letras de Switch" or "") .. ".")
+  table.insert(lines, "R3 deja de hacer ping: el ping (" .. YB.PingCommand() .. ") va en la rueda de Utilidad.")
   return lines
 end
 
@@ -99,7 +101,6 @@ end
 local OPTIONS = {
   { path = { "modules", "sellJunk" }, value = true },
   { path = { "modules", "autoRepair" }, value = true },
-  { path = { "features", "rangeTint" }, value = true, apply = function(ck) if ck.Range and ck.Range.Apply then ck.Range:Apply() end end },
   { path = { "features", "quietErrors" }, value = true, apply = function(ck) if ck.QuietErrors and ck.QuietErrors.Apply then ck.QuietErrors:Apply() end end },
 }
 local function getPath(t, path) for i = 1, #path - 1 do t = t and t[path[i]] end return t and t[path[#path]] end
@@ -184,9 +185,10 @@ function EC:Apply()
   if YB:Device() == "pc" then
     if b.options.glyphStyle == nil then b.options.glyphStyle = s.glyphStyle or "auto" end
     if ck.PickGlyphStyle then pcall(ck.PickGlyphStyle, ck, "switch") end
-    if b.options.reticle == nil then b.options.reticle = (s.reticle and s.reticle.mode) or "game" end
-    if ck.Reticle and ck.Reticle.SetMode then pcall(ck.Reticle.SetMode, ck.Reticle, "cycle") end
   end
+  -- punto central que cambia de color: las dos pantallas son OLED (Switch OLED y Deck OLED)
+  if b.options.reticle == nil then b.options.reticle = (s.reticle and s.reticle.mode) or "game" end
+  if ck.Reticle and ck.Reticle.SetMode then pcall(ck.Reticle.SetMode, ck.Reticle, "cycle") end
 
   if ck.Mapping.Apply then pcall(ck.Mapping.Apply, ck.Mapping) end
   if ck.Paddles and ck.Paddles.Apply then pcall(ck.Paddles.Apply, ck.Paddles) end
@@ -266,11 +268,34 @@ function EC:SyncRanks()
   if changed > 0 then YB.Tell(("rangos nuevos puestos en las ruedas (%d)."):format(changed)) end
 end
 
+---------------------------------------------------------------- 6.0 -> 6.1: sin rojo fuera de alcance
+-- La 6.0 lo encendía. Se deja como estaba antes de YB y se olvida de la copia.
+function EC:DropRangeTint()
+  local db = YagriverBindsCharDB
+  local b = db and db.ec and db.ec.options
+  if not (b and b["features.rangeTint"] ~= nil) then return false end
+  local s = ecSettings()
+  if not s then return false end
+  local prev = b["features.rangeTint"]
+  s.features = s.features or {}
+  s.features.rangeTint = (prev ~= "nil") and prev or false
+  b["features.rangeTint"] = nil
+  local ck = CK()
+  if ck.Range and ck.Range.Apply then pcall(ck.Range.Apply, ck.Range) end
+  YB.Tell("rojo fuera de alcance de Easy Controller apagado otra vez.")
+  return true
+end
+
 local ev = CreateFrame("Frame")
+ev:RegisterEvent("PLAYER_LOGIN")
 ev:RegisterEvent("SPELLS_CHANGED")
 ev:RegisterEvent("PLAYER_REGEN_ENABLED")
 local timer
 ev:SetScript("OnEvent", function(_, event)
+  if event == "PLAYER_LOGIN" then
+    if C_Timer and C_Timer.After then C_Timer.After(1, function() EC:DropRangeTint() end) else EC:DropRangeTint() end
+    return
+  end
   if event == "SPELLS_CHANGED" or EC.syncPending then
     if YB.InCombat() then EC.syncPending = true return end
     EC.syncPending = nil

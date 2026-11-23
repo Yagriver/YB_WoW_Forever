@@ -1,4 +1,4 @@
--- Yagriver Binds 6 - ventana: Inicio, Armas, Dispositivo, Easy Controller y Comprobar.
+-- Yagriver Binds 6 - ventana: Inicio, Armas, Dispositivo, Easy Controller, Comprobar y (en la Deck) Mapa de la Deck.
 -- Se abre con la huella del minimapa, /yag o la rueda Utilidad de Easy Controller.
 local ADDON, YB = ...
 
@@ -65,12 +65,20 @@ local function page()
   p:Hide()
   return p
 end
-local tabDefs = { { "home", "Inicio" }, { "weapons", "Armas" }, { "device", "Dispositivo" }, { "ec", "Easy Controller" }, { "checks", "Comprobar" } }
-for i, d in ipairs(tabDefs) do
+-- { id, texto, ancho, solo en este dispositivo }
+local tabDefs = { { "home", "Inicio", 78 }, { "weapons", "Armas", 70 }, { "device", "Dispositivo", 98 },
+  { "ec", "Easy Controller", 122 }, { "checks", "Comprobar", 94 }, { "deckmap", "Mapa de la Deck", 122, "deck" } }
+for _, d in ipairs(tabDefs) do
   pages[d[1]] = page()
-  local b = button(f, d[2], i == 4 and 130 or 102, 24)
-  b:SetPoint("TOPLEFT", 14 + (i - 1) * 106 + (i > 4 and 28 or 0), -30)
-  tabs[d[1]] = b
+  tabs[d[1]] = button(f, d[2], d[3], 24)
+end
+local function placeTabs()
+  local x = 14
+  for _, d in ipairs(tabDefs) do
+    local b = tabs[d[1]]
+    if d[4] and d[4] ~= YB:Device() then b:Hide()
+    else b:Show(); b:ClearAllPoints(); b:SetPoint("TOPLEFT", x, -30); x = x + d[3] + 4 end
+  end
 end
 local tabLine = rect(f, GOLD[1], GOLD[2], GOLD[3], 0.35, "ARTWORK")
 tabLine:SetPoint("TOPLEFT", 12, -58); tabLine:SetPoint("TOPRIGHT", -12, -58); tabLine:SetHeight(1)
@@ -121,7 +129,7 @@ local function buildHome()
   local y = 0
   y = section(add, p, "¿En qué máquina estás?", y)
   local defs = { { "pc", "PC", "Escritorio 21:9 y Moonlight a la Switch" },
-                 { "deck", "Steam Deck", "Deck y Dock (llega en la 6.1)" } }
+                 { "deck", "Steam Deck", "Deck en mano y Dock" } }
   for i, d in ipairs(defs) do
     local b = add(button(p, d[2], 290, 44))
     b:SetPoint("TOPLEFT", (i - 1) * 310, y)
@@ -131,7 +139,7 @@ local function buildHome()
     else ic:SetTexture(MEDIA .. "deck_front"); ic:SetTexCoord(0, 1, 0, 399 / 512); ic:SetSize(62, 24) end
     ic:SetPoint("LEFT", b, "LEFT", 12, 0)
     tip(b, d[3] .. ".\nSe guarda solo en esta máquina.")
-    b:SetScript("OnClick", function() run(function() return YB:SetDevice(d[1]) end, function() show("home") end) end)
+    b:SetScript("OnClick", function() run(function() return YB:SetDevice(d[1]) end, function() placeTabs(); show("home") end) end)
     local sub = add(label(p, "|cff888888" .. d[3] .. "|r" .. (g.device == d[1] and "  |cff40ff40(esta máquina)|r" or ""),
       "GameFontHighlightSmall", true))
     sub:SetPoint("TOPLEFT", (i - 1) * 310 + 4, y - 48)
@@ -224,7 +232,12 @@ buildWeapons = function()
     y = y - 6
   end
   y = section(add, p, "Con el mando", y)
-  para(add, p, "|cff888888Los dos conjuntos están en la rueda Formas de Easy Controller (ZL + ZR + izquierda).|r", y)
+  if YB:Device() == "deck" then
+    y = para(add, p, "|cff888888R5 + cruceta izquierda = lanzador, R5 + cruceta derecha = feral (plantilla de Steam).|r", y)
+    para(add, p, "|cff888888También en la rueda Formas de Easy Controller (L2 + R2 + X).|r", y)
+  else
+    para(add, p, "|cff888888Los dos conjuntos están en la rueda Formas de Easy Controller (ZL + ZR + izquierda).|r", y)
+  end
 end
 
 ---------------------------------------------------------------- DISPOSITIVO
@@ -234,21 +247,25 @@ buildDevice = function()
   local add = holder(p)
   local g = YB:Global()
   local y = 0
-  if g.device ~= "pc" then
-    para(add, p, g.device == "deck" and "Los modos de la Deck llegan en YB 6.1. En la Deck sigue usando la 5.x por ahora."
-      or "Elige primero la máquina en Inicio.", y, "GameFontHighlight")
+  if not g.device then
+    para(add, p, "Elige primero la máquina en Inicio.", y, "GameFontHighlight")
     return
   end
   local m, mode = YB:ModeKey(), YB:Mode()
+  local deck = g.device == "deck"
   y = section(add, p, "Modo", y)
-  local defs = { { "pc", "PC (escritorio)", "Teclado y ratón, monitor 21:9", "monitor", 30, 30 },
-                 { "moonlight", "Moonlight (Switch)", "Interfaz de mando, 16:9", "switch", 48, 24 } }
+  local function styleText(x) return YB:StyleFor(x) == "1" and "interfaz de mando" or "teclado y ratón" end
+  local defs = deck and {
+      { "deck", "Deck (en mano)", "Pantalla de la Deck, " .. styleText("deck"), "deck_front", 62, 24, 399 / 512 },
+      { "dock", "Dock (monitor)", "Monitor o tele, " .. styleText("dock"), "monitor", 30, 30 } }
+    or { { "pc", "PC (escritorio)", "Teclado y ratón, monitor 21:9", "monitor", 30, 30 },
+         { "moonlight", "Moonlight (Switch)", "Interfaz de mando, 16:9", "switch", 48, 24 } }
   for i, d in ipairs(defs) do
     local b = add(button(p, d[2], 290, 40))
     b:SetPoint("TOPLEFT", (i - 1) * 310, y)
     if m == d[1] then b:LockHighlight() else b:UnlockHighlight() end
     local ic = add(b:CreateTexture(nil, "OVERLAY"))
-    ic:SetTexture(MEDIA .. d[4]); ic:SetTexCoord(0, 1, 0, 1); ic:SetSize(d[5], d[6]); ic:SetPoint("LEFT", b, "LEFT", 12, 0)
+    ic:SetTexture(MEDIA .. d[4]); ic:SetTexCoord(0, 1, 0, d[7] or 1); ic:SetSize(d[5], d[6]); ic:SetPoint("LEFT", b, "LEFT", 12, 0)
     tip(b, d[3] .. ".\nCambiar el estilo de interfaz recarga la interfaz.")
     b:SetScript("OnClick", function() run(function() return YB:ApplyMode(d[1]) end, buildDevice) end)
     local sub = add(label(p, "|cff888888" .. d[3] .. "|r" .. (m == d[1] and "  |cff40ff40(activo)|r" or ""), "GameFontHighlightSmall", true))
@@ -256,7 +273,8 @@ buildDevice = function()
   end
   y = y - 66
   local w, h = YB:ScreenSize()
-  local au = add(check(p, "Auto: el modo según la pantalla (21:9 = PC, 16:9 = Moonlight)", function(v)
+  local au = add(check(p, deck and "Auto: el modo según la pantalla (1280 x 800 = Deck, otra = Dock)"
+    or "Auto: el modo según la pantalla (21:9 = PC, 16:9 = Moonlight)", function(v)
     g.auto = v; say(v and "Auto activado." or "Auto desactivado: el modo se queda como lo pongas.")
   end))
   add(au.text); au:SetPoint("TOPLEFT", 0, y); au:SetChecked(g.auto)
@@ -294,7 +312,15 @@ buildDevice = function()
   rr:SetScript("OnClick", function() run(function() return YB:HintReset() end, buildDevice) end)
   y = y - 40
 
-  if YB.MODE_STYLE[m] == "1" then
+  if deck then
+    y = section(add, p, "Interfaz  |cff888888(" .. YB.MODE_NAMES[m] .. ")|r", y)
+    local pad = YB:StyleFor(m) == "1"
+    local pb = add(button(p, pad and "Interfaz de mando: SÍ" or "Interfaz de mando: NO", 200, 26)); pb:SetPoint("TOPLEFT", 0, y)
+    tip(pb, "La opción 'Activar interfaz de mando' de WoW, guardada para este modo.\nCambiarla recarga la interfaz.")
+    pb:SetScript("OnClick", function() run(function() return YB:SetModeStyle(not pad) end, buildDevice) end)
+    y = y - 34
+  end
+  if YB:StyleFor(m) == "1" then
     y = section(add, p, "Mando", y)
     local rs = add(check(p, "El stick derecho mueve siempre la cámara (el cursor de WoW no lo coge en los menús)", function(v)
       run(function() return YB:SetStickCamera(v) end, buildDevice)
@@ -351,10 +377,21 @@ local function buildChecks()
   y = section(add, p, "Addons que chocan", y)
   local cs = YB:Conflicts()
   y = para(add, p, #cs > 0 and ("|cffff5050" .. table.concat(cs, "\n") .. "|r") or "|cff40ff40Ninguno.|r", y)
+  if YB:Device() == "deck" then
+    y = section(add, p, "Teclas de la plantilla de Steam", y)
+    y = para(add, p, ("|cffffffff%d|r teclas puestas por YB mientras funciona (no se guardan, no viajan al PC)."):format(YB.deckKeyCount or 0) ..
+      ((YB:Global().cleaned or 0) > 0 and ("  Teclas guardadas de la 5.x quitadas: %d."):format(YB:Global().cleaned) or ""), y)
+    for _, d in ipairs(YB.DECK_BINDS) do
+      local now = GetBindingAction(d[1], true) or ""
+      local l = add(label(p, "|cffaad4ff" .. d[1] .. "|r  " .. d[4] .. (now == "" and "  |cffff5050(sin tecla)|r" or ""), "GameFontHighlightSmall", true))
+      l:SetWidth(W - 44); l:SetPoint("TOPLEFT", 4, y); y = y - 14
+    end
+    return
+  end
   y = section(add, p, "Teclas de la Deck en esta máquina", y)
   local left = YB:DeckLeftovers()
-  y = para(add, p, ("|cffffffff%d de %d|r teclas de la Deck han llegado por el servidor de Blizzard. Déjalas de momento: " ..
-    "la Deck aún las usa. YB 6.1 en la Deck las quita de las dos máquinas."):format(#left, #YB.deckKeys), y)
+  y = para(add, p, ("|cffffffff%d de %d|r teclas guardadas por la Deck 5.x han llegado por el servidor de Blizzard. " ..
+    "Desaparecen solas cuando la Deck arranque la 6.1 (allí YB las quita)."):format(#left, #YB.deckKeys), y)
   local col = 0
   for _, e in ipairs(left) do
     local l = add(label(p, "|cffaad4ff" .. e.key .. "|r  " .. e.action, "GameFontHighlightSmall", true))
@@ -365,11 +402,17 @@ local function buildChecks()
 end
 
 ---------------------------------------------------------------- cambiar de pestaña
+local function buildDeckMap()
+  YB:DeckMapBuild(pages.deckmap); YB:DeckMapShow()
+end
 local builders = { home = buildHome, weapons = function() buildWeapons() end, device = function() buildDevice() end,
-  ec = function() buildEC() end, checks = buildChecks }
+  ec = function() buildEC() end, checks = buildChecks, deckmap = buildDeckMap }
 local current = "home"
 show = function(which)
+  if which == "deckmap" and YB:Device() ~= "deck" then which = "home" end
   current = which
+  placeTabs()
+  if which == "deckmap" and YB.DeckMapSize then f:SetSize(YB.DeckMapSize[1], YB.DeckMapSize[2]) else f:SetSize(W, H) end
   for k, pg in pairs(pages) do if k == which then pg:Show() else pg:Hide() end end
   for k, b in pairs(tabs) do if k == which then b:LockHighlight() else b:UnlockHighlight() end end
   local ok, err = pcall(builders[which]); if not ok then say("Error: " .. tostring(err), true) end

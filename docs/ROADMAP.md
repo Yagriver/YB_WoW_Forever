@@ -28,3 +28,10 @@ weapon swaps manual; mockups first; restart Steam after a Deck install.
 - A priority override on the plain key catches L1, R1, L3 and R3 on press and release, and the secure
   code sees which triggers are held, also in combat. Taking a button removes its own job.
 - The trigger must be pressed first. Chat test: inconclusive (probe bug). Stick read: not tested yet.
+
+## Estado 2026-11-23 (6.1)
+- Hecho: dispositivo Steam Deck en el addon único (teclas de la plantilla v5 como override, limpieza de
+  las teclas guardadas de la 5.5 desde la Deck, mapa de la Deck), arreglo de Acecho/Carrera/Enfurecer,
+  ping con `/aviso`, sin rojo fuera de alcance. La 5.5 queda en la etiqueta `deck-5.5`.
+- Pendiente: pestaña "Mapa del mando" (maqueta esperando visto bueno), comprobar A/B en Moonlight y la
+  montura de la barra 5 botón 12, subir a GitHub (falta la app de Claude en el repositorio).

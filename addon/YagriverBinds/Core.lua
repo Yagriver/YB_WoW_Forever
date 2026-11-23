@@ -5,7 +5,7 @@
 --     no las copia a la otra máquina. Las macros YB sí se comparten, a propósito.
 --   * Nada se cambia en combate.
 local ADDON, YB = ...
-YB.VERSION = "6.0"
+YB.VERSION = "6.1"
 
 ---------------------------------------------------------------- compatibilidad de API
 function YB.SpellName(id)
@@ -69,9 +69,28 @@ function YB.Tell(msg) print("|cff88ccffYagriver Binds:|r " .. msg) end
 local tell = YB.Tell
 
 ---------------------------------------------------------------- ajustes guardados
+-- La 5.x (solo existía en la Deck) guardaba "handheld" y "docked": se copian a "deck" y "dock".
+-- Los originales se quedan, por si hay que volver a la 5.5.
+local function migrate55(g)
+  if g.migrated55 or not (g.modes and (g.modes.handheld or g.modes.docked)) then return end
+  for old, new in pairs({ handheld = "deck", docked = "dock" }) do
+    local o = g.modes[old]
+    if o and not g.modes[new] then
+      local h = o.hint or {}
+      g.modes[new] = { scale = o.scale, hint = { scale = h.scale, x = h.x, y = h.y },
+        style = (o.pad == nil) and nil or (o.pad and "1" or "0") }
+    end
+  end
+  if g.mode == "handheld" then g.mode = "deck" elseif g.mode == "docked" then g.mode = "dock" end
+  if not g.device then g.device = "deck"; g.auto = false end   -- la 5.x elegía el modo a mano
+  g.migrated55 = true
+  YB.migrated = true
+end
+
 function YB:Global()
   YagriverBindsDB = YagriverBindsDB or {}
   local g = YagriverBindsDB
+  migrate55(g)
   if g.auto == nil then g.auto = true end
   g.keys = g.keys or {}
   g.modes = g.modes or {}
@@ -100,11 +119,11 @@ function YB:SetDevice(d)
   local g = self:Global()
   g.device = d
   g.mode = nil
-  if d == "deck" then
-    return true, "Steam Deck elegido. Sus funciones llegan en YB 6.1: en la Deck sigue usando la 5.x por ahora."
-  end
+  self:ApplyKeys()
+  local cleaned = self:CleanSavedDeckKeys()
   local ok, msg = self:ApplyMode(self:DetectMode())
-  return true, "PC elegido. " .. (msg or "")
+  local extra = cleaned > 0 and (" Quitadas %d teclas guardadas de la 5.x (ahora las pone YB sin guardarlas)."):format(cleaned) or ""
+  return true, YB.DEVICES[d].name .. " elegido. " .. (msg or "") .. extra
 end
 function YB:ModeKey()
   local g = self:Global()
@@ -113,6 +132,18 @@ function YB:ModeKey()
   return self:DetectMode()
 end
 function YB:Mode() return self:Global().modes[self:ModeKey()] end
+-- Estilo de interfaz de un modo: "1" mando, "0" teclado y ratón. En la Deck se puede cambiar por modo.
+function YB:StyleFor(m)
+  local mode = self:Global().modes[m]
+  return (mode and mode.style) or YB.MODE_STYLE[m]
+end
+function YB:SetModeStyle(pad)
+  if YB.InCombat() then return false, "Sal del combate primero." end
+  if self:Device() ~= "deck" then return false, "En el PC el estilo va fijo con cada modo." end
+  local m = self:ModeKey()
+  self:Mode().style = pad and "1" or "0"
+  return self:ApplyMode(m)
+end
 
 ---------------------------------------------------------------- qué modo pide la pantalla
 -- PC: el monitor del escritorio es 21:9 (3440x1440); Moonlight es una pantalla virtual 16:9 (1920x1080).
@@ -153,13 +184,13 @@ end
 ---------------------------------------------------------------- stick derecho siempre cámara (modos de mando)
 function YB:StickCameraOn() return getCVar("GamePadCursorAutoEnable") == "0" end
 function YB:ApplyStickCamera()
-  local on = YB.MODE_STYLE[self:ModeKey()] == "1" and self:Mode().stickCamera
+  local on = self:StyleFor(self:ModeKey()) == "1" and self:Mode().stickCamera
   setCVar("GamePadCursorAutoEnable", on and "0" or "1")
   setCVar("GamePadCursorAutoDisableSticks", "2")
 end
 function YB:SetStickCamera(on)
   if YB.InCombat() then return false, "Sal del combate primero." end
-  if YB.MODE_STYLE[self:ModeKey()] ~= "1" then return false, "Esta opción es para los modos con mando." end
+  if self:StyleFor(self:ModeKey()) ~= "1" then return false, "Esta opción es para los modos con mando." end
   self:Mode().stickCamera = on
   self:ApplyStickCamera()
   return true, on and "El stick derecho mueve siempre la cámara." or "Stick derecho como trae WoW (cursor en los menús)."
@@ -211,8 +242,10 @@ function YB:InterfaceStyle() return getCVar("InputDeviceInterfaceStyle") end
 function YB:ApplyMode(m)
   if YB.InCombat() then return false, "Sal del combate primero." end
   local g = self:Global()
-  if self:Device() == "deck" then return false, "Los modos de la Deck llegan en YB 6.1." end
-  if not g.modes[m] then return false, "Modo desconocido." end
+  local dev = YB.DEVICES[self:Device() or "pc"]
+  local valid = false
+  for _, x in ipairs(dev.modes) do if x == m then valid = true end end
+  if not (valid and g.modes[m]) then return false, "Modo desconocido para esta máquina." end
   g.mode = m
   local mode = g.modes[m]
   setCVar("GamePadEnable", "1")
@@ -220,7 +253,7 @@ function YB:ApplyMode(m)
   self:SetScale(mode.scale)
   self:ApplyStickCamera()
   if YB.LayoutHint then YB.LayoutHint() end
-  local style = YB.MODE_STYLE[m]
+  local style = self:StyleFor(m)
   if self:InterfaceStyle() ~= style then
     g.styleChange = { mode = m, at = time() }
     setCVar("InputDeviceInterfaceStyle", style)
@@ -245,12 +278,17 @@ function YB:Startup()
     tell("elige el dispositivo en la ventana de YB (PC o Steam Deck).")
     return
   end
+  if YB.migrated then
+    YB.migrated = nil
+    tell("ajustes de la 5.x pasados a la 6.1: Deck y Dock conservan su escala y su aviso.")
+  end
   if g.device == "deck" then
-    tell("dispositivo Steam Deck: sus funciones llegan en YB 6.1. En la Deck sigue usando la 5.x por ahora.")
-    return
+    if YB.macrosLater then YB.macrosLater = nil; self:ApplyKeys() end
+    local n = self:CleanSavedDeckKeys()
+    if n > 0 then tell(("quitadas %d teclas guardadas de la 5.x: ahora YB las pone sin guardarlas, y el PC deja de recibirlas."):format(n)) end
   end
   local want = g.auto and self:DetectMode() or self:ModeKey()
-  local styleOK = self:InterfaceStyle() == YB.MODE_STYLE[want]
+  local styleOK = self:InterfaceStyle() == self:StyleFor(want)
   if not styleOK and g.styleChange and g.styleChange.mode == want and (time() - (g.styleChange.at or 0)) < 60 then
     g.mode = want
     g.styleChange = nil
@@ -296,6 +334,7 @@ local owner = CreateFrame("Frame", "YagriverBindsKeys")
 function YB:ApplyKeys()
   if YB.InCombat() then YB.pendingKeys = true return false end
   ClearOverrideBindings(owner)
+  if self:Device() == "deck" then self:ApplyDeckKeys(owner) return true end
   if self:Device() ~= "pc" then return true end
   local g = self:Global()
   for _, a in ipairs(YB.KEY_ACTIONS) do
@@ -389,7 +428,7 @@ end
 local screenTimer
 local function screenChanged()
   local g = YB:Global()
-  if g.device ~= "pc" or not g.auto or not YB.started then return end
+  if not g.device or not g.auto or not YB.started then return end
   local want = YB:DetectMode()
   if want ~= YB:ModeKey() then YB:OfferMode(want) elseif pending then finishBanner(false) end
 end
@@ -400,6 +439,8 @@ ev:RegisterEvent("PLAYER_LOGIN")
 ev:RegisterEvent("PLAYER_REGEN_ENABLED")
 ev:RegisterEvent("PLAYER_REGEN_DISABLED")
 ev:RegisterEvent("DISPLAY_SIZE_CHANGED")
+ev:RegisterEvent("SPELLS_CHANGED")
+local spellTimer
 ev:SetScript("OnEvent", function(_, event)
   if event == "PLAYER_LOGIN" then
     YB:ApplyKeys()
@@ -411,10 +452,17 @@ ev:SetScript("OnEvent", function(_, event)
     for _, c in ipairs(YB:Conflicts()) do tell("|cffff5050" .. c .. "|r") end
   elseif event == "PLAYER_REGEN_ENABLED" then
     if YB.pendingKeys then YB.pendingKeys = nil; YB:ApplyKeys() end
+    if YB.pendingClean then YB.pendingClean = nil; YB:CleanSavedDeckKeys() end
     if YB.pendingStartup then YB.pendingStartup = nil; YB:Startup(); YB.started = true end
     if YB.pendingOffer then local m = YB.pendingOffer; YB.pendingOffer = nil; YB:OfferMode(m) end
   elseif event == "PLAYER_REGEN_DISABLED" then
     if pending then YB.pendingOffer = pending; finishBanner(false) end
+  elseif event == "SPELLS_CHANGED" then
+    -- la Deck: rangos y hechizos nuevos (Oso temible, Suprimir veneno...) en sus teclas
+    if YB:Device() ~= "deck" or not YB.started then return end
+    if spellTimer then spellTimer:Cancel() end
+    local function again() if YB.InCombat() then YB.pendingKeys = true else YB:ApplyKeys() end end
+    if C_Timer and C_Timer.NewTimer then spellTimer = C_Timer.NewTimer(2, again) else again() end
   elseif event == "DISPLAY_SIZE_CHANGED" then
     if screenTimer then screenTimer:Cancel() end
     if C_Timer and C_Timer.NewTimer then screenTimer = C_Timer.NewTimer(1.5, screenChanged) else screenChanged() end

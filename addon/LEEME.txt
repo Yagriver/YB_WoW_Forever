@@ -1,8 +1,14 @@
-Yagriver Binds 6.0 (PC)
+Yagriver Binds 6.1 (PC)
 =======================
 
-Un solo addon para el PC y, desde la 6.1, para la Steam Deck. En el PC: modos PC y Moonlight,
-armas, y el boton "Preparar Easy Controller".
+Un solo addon para el PC y la Steam Deck (la Deck tiene su propio paquete con install.sh).
+En el PC: modos PC y Moonlight, armas, y el boton "Preparar Easy Controller".
+
+Novedades de la 6.1
+  * Gato + Acecho, Gato + Carrera y Oso + Enfurecer: primera pulsacion la forma, segunda el extra.
+  * El ping usa el comando de tu idioma (/aviso en espanol; /ping no existe ahi).
+  * Rojo fuera de alcance apagado otra vez (la 6.0 lo encendia).
+  * Tras instalar no hace falta "Preparar" de nuevo: las macros se corrigen solas al entrar.
 
 Instalar
   1. Instala Easy Controller - Forever 1.24 (CurseForge o su zip) si no lo tienes.
@@ -12,7 +18,6 @@ Instalar
 En el escritorio (teclado)
   1. Armas: ponte cada conjunto y pulsa "Usar equipado". Luego "Elegir tecla" para cada uno (tus 6 y 7).
   2. Dispositivo: escala del modo PC y, si quieres, su diseño de Edit Mode.
-  Nota: los ajustes de YagriverBindsPC no pasan solos a la 6.0; son esas cuatro cosas.
 
 En la Switch (Moonlight)
   1. Arranca el stream con WoW abierto: el aviso cambia a Moonlight en 6 s (o entra ya en streaming).
@@ -30,7 +35,7 @@ Lista de pruebas
   [ ] Gato -> Acecho: primera pulsacion gato, segunda acecho. Igual Carrera y Enfurecer.
   [ ] Sanador: R3 abre tu grupo; empuja el stick derecho hacia alguien y suelta.
   [ ] Utilidad: piedra, montura, frases rapidas, consumibles, ajustes de YB y de Easy Controller.
-  [ ] Ping desde la rueda (si Forever no tiene /ping, dimelo y lo cambio).
+  [ ] Ping desde la rueda: con objetivo marca al objetivo; sin objetivo, donde mires.
   [ ] Moonlight: comprueba si "abajo" es el boton de abajo de tu Switch (si A/B estan cambiados).
   [ ] Volver al escritorio: modo PC, teclado, tu escala.
 

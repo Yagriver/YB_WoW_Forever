@@ -1,0 +1,34 @@
+Yagriver Binds 6.1 (Steam Deck)
+===============================
+
+El mismo addon que en el PC. En la Deck hace lo de la 5.5 (botones traseros, R5, trackpads, mapa de
+la Deck) y además prepara Easy Controller.
+
+Instalar (escritorio de la Deck, Konsole)
+  1. Descomprime el zip y en esa carpeta:  bash install.sh
+     Pone iconos, la plantilla v5 de siempre, YagriverBinds 6.1 y Easy Controller 1.24 si no lo tienes.
+  2. Reinicia Steam y vuelve al modo juego.
+  3. En WoW, mira que Easy Controller esté activado en la lista de addons y entra.
+
+Al entrar la primera vez
+  * YB ve los ajustes de la 5.5: elige "Steam Deck" solo, con tu escala y tu aviso de Deck y Dock.
+  * Quita una vez las teclas que guardaba la 5.5 y las pone él sin guardarlas. Así dejan de viajar al PC.
+    Lo que tuvieran antes de la 5.5 vuelve; las que cambiaste a mano (y la montura en Ctrl+F9) se quedan.
+  * Ya no hace falta "Apply binds": las teclas están puestas cada vez que entras.
+
+Prueba rápida
+  [ ] R4 toque = Gato, R4 mantener = Acecho. L5 = Oso / Enfurecer. L4 = Viaje / Carrera.
+  [ ] R5 + pad derecho: Enervar, Pielcorteza, Gracia, Rejuvenecimiento en ti. R5 + A/B/X/Y.
+  [ ] R5 + cruceta izq. / der. = armas. R5 + cruceta arriba = piedra de hogar.
+  [ ] L2 + pad izquierdo = tú y el grupo.
+  [ ] R5 + pad izquierdo: "YB menu" abre YB; "Chat + Prof." abre ahora las frases de Easy Controller.
+  [ ] /yag > Mapa de la Deck: las cuatro vistas.
+  [ ] /yag > Easy Controller > Preparar > CONFIRMAR > Recargar. Luego L2 + R2 + A/X/Y/B y R3 (sanador).
+  [ ] Rueda Formas (L2 + R2 + X): Gato + Acecho entra en gato y, a la segunda, en sigilo.
+
+Si algo sale mal antes de jugar
+  Reinstala la 5.5 (YB_SteamDeck_v5.5.zip) y pulsa "Apply binds" en /yag: vuelve todo como estaba.
+  Tus ajustes de la 5.5 siguen guardados.
+
+Mándame después
+  WTF/Account/<CUENTA>/SavedVariables/YagriverBinds.lua (dentro del prefijo de Battle.net de la Deck).
