@@ -49,7 +49,7 @@ ok, why = ec("Ready")
 check(ok, "ready in Moonlight mode")
 ex('ECV = "1.25.0"')
 ok, why = ec("Ready")
-check(not ok and "1.25.0" in str(why), "refuses an unread version")
+check(ok and "1.25.0" in str(ec("VersionWarning")), "a newer version is allowed, with a warning")
 ex('ECV = "1.24.0"')
 
 # 5. preview

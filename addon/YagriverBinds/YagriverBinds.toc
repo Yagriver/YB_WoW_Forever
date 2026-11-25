@@ -2,7 +2,7 @@
 ## Title: Yagriver Binds
 ## Notes: Un solo addon para Steam Deck y PC: modos por dispositivo, armas, y la preparación de Easy Controller.
 ## Author: Yagriver
-## Version: 6.1
+## Version: 6.1.1
 ## OptionalDeps: EasyController
 ## SavedVariables: YagriverBindsDB
 ## SavedVariablesPerCharacter: YagriverBindsCharDB

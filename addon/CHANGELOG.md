@@ -1,5 +1,11 @@
 # Yagriver Binds 6 (un addon para PC y Steam Deck)
 
+## 6.1.1 — 2026-11-25
+- Easy Controller de otra versión: ya no bloquea "Preparar", solo avisa (en naranja en la pestaña y
+  en el mensaje). Si Easy Controller falla a medias, YB lo dice y deja Deshacer disponible.
+- Solo se niega si faltan las funciones que usa YB.
+- En la Deck la vista previa nombra los botones de la Deck (L2 + R2 + A...).
+
 ## 6.1 — 2026-11-23
 - Steam Deck como dispositivo: modos Deck y Dock (escala, diseño, aviso e interfaz de mando por modo),
   las 24 teclas de la plantilla de Steam v5 como override bindings (no se guardan ni viajan al PC),

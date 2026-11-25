@@ -87,8 +87,20 @@ ex('FORM = 0')
 # 4. Easy Controller: ready in Deck mode
 ok, why = ec("Ready")
 check(ok, "Easy Controller can be prepared in Deck mode: " + str(why))
+# 4a. a newer Easy Controller (1.26) whose wheel styles fail half-way: error caught, Undo possible
+ex('ECV = "1.26.0"; REAL_SETSTYLE = ControllerKeyboard.MyWheels.SetStyle; ControllerKeyboard.MyWheels.SetStyle = function() error("changed") end')
 ok, msg = ec("Apply")
-check(ok and str(g.ECS.reticle.mode) == "cycle" and str(g.ECS.glyphStyle) == "auto", "OLED dot on the Deck, labels left alone")
+check(not ok and "a medias" in str(msg) and "1.26.0" in str(msg), "half-way error reported with the version warning")
+check(ec("Applied") == True, "Undo available after the half-way error")
+ok, msg = ec("Undo")
+check(ok, "Undo after the error: " + str(msg))
+ex('ControllerKeyboard.MyWheels.SetStyle = REAL_SETSTYLE')
+# 4b. the newer version working: prepared, with the warning
+ok, msg = ec("Apply")
+check(ok and "1.26.0" in str(msg), "newer version prepared, warning in the message")
+ex('ECV = "1.24.0"')
+ok, msg = ec("Apply")
+check(ok and "1.24" not in str(msg) and str(g.ECS.reticle.mode) == "cycle" and str(g.ECS.glyphStyle) == "auto", "OLED dot on the Deck, labels left alone")
 
 # 5. dock by hand: keyboard UI, keys stay
 ok, msg = yb("ApplyMode", "dock")

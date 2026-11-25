@@ -20,7 +20,7 @@ if cp "$HERE"/wow_forever_druid_neptune_v5.vdf "$TPL"/; then echo "   OK: planti
 ADDONS="$HOME/Games/prefixes/battlenet/wow/drive_c/Program Files (x86)/World of Warcraft/_forever_/Interface/AddOns"
 echo "== 3/4 Addon Yagriver Binds"
 if [ -d "$ADDONS" ]; then
-  if rm -rf "$ADDONS/YagriverBinds" && cp -r "$HERE/YagriverBinds" "$ADDONS/"; then echo "   OK: YagriverBinds 6.1 instalado"; else echo "   FALLO"; FAIL=1; fi
+  if rm -rf "$ADDONS/YagriverBinds" && cp -r "$HERE/YagriverBinds" "$ADDONS/"; then echo "   OK: YagriverBinds 6.1.1 instalado"; else echo "   FALLO"; FAIL=1; fi
 else
   echo "   FALLO: no encuentro la carpeta AddOns:"; echo "     $ADDONS"; echo "   Copia la carpeta YagriverBinds ahí a mano."; FAIL=1
 fi
@@ -31,7 +31,7 @@ if [ -d "$ADDONS" ]; then
     V=$(grep -i "^## Version" "$ADDONS/EasyController/EasyController.toc" 2>/dev/null | sed 's/.*: *//' | tr -d '\r')
     echo "   Ya lo tienes (versión ${V:-?}): no lo toco."
   elif [ -d "$HERE/EasyController" ]; then
-    if cp -r "$HERE/EasyController" "$ADDONS/"; then echo "   OK: Easy Controller 1.24.0 instalado"; else echo "   FALLO"; FAIL=1; fi
+    if cp -r "$HERE/EasyController" "$ADDONS/"; then echo "   OK: Easy Controller 1.24.0 instalado (el que viene en el paquete)"; else echo "   FALLO"; FAIL=1; fi
   else
     echo "   Falta Easy Controller y no viene en este paquete: instálalo a mano."
   fi

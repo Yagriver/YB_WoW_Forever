@@ -17,18 +17,20 @@ function EC:Version()
   return ok and v or nil
 end
 local function majorMinor(v) return v and v:match("^(%d+%.%d+)") end
+-- Aviso si la versión no es una de las que he leído (no bloquea: solo avisa)
+function EC:VersionWarning()
+  local v = self:Version()
+  if YB.EC_TESTED[majorMinor(v) or ""] then return nil end
+  return ("Easy Controller %s: YB está hecho para la 1.24. Lo intenta igual; si algo no sale, puede ser la versión."):format(tostring(v))
+end
 
 -- ¿Se puede preparar ahora? Devuelve true, o false y el motivo
 function EC:Ready()
   local ck = CK()
   if not (YB.IsLoaded("EasyController") and ck) then return false, "Easy Controller no está activado." end
-  local v = self:Version()
-  if not YB.EC_TESTED[majorMinor(v) or ""] then
-    return false, ("Easy Controller %s: no he leído esta versión, así que no toco nada. Usa la hoja de pasos."):format(tostring(v))
-  end
   if not (ck.MapPage and ck.MapPage.Put and ck.Mapping and ck.Mapping.BY_ID and ck.MyWheels and ck.MyWheels.Create
           and ecSettings()) then
-    return false, "Easy Controller no expone lo que esperaba (¿versión cambiada?). No toco nada."
+    return false, "Easy Controller " .. tostring(self:Version()) .. " no tiene las funciones que usa YB (han cambiado). No toco nada."
   end
   if ck.Mapping.Enabled and not ck.Mapping:Enabled() then return false, "Activa el módulo de mapeo en Easy Controller (Inicio)." end
   if YB.InCombat() then return false, "Sal del combate primero." end
@@ -70,7 +72,11 @@ end
 ---------------------------------------------------------------- vista previa
 local LAYER_TEXT = { [""] = "", LT = "ZL + ", RT = "ZR + ", LTRT = "ZL + ZR + " }
 local POSITION = { A = "abajo (A)", B = "derecha (B)", X = "izquierda (X)", Y = "arriba (Y)", R3 = "R3" }
-local function combo(input, layer) return LAYER_TEXT[layer] .. (POSITION[input] or input) end
+local LAYER_DECK = { [""] = "", LT = "L2 + ", RT = "R2 + ", LTRT = "L2 + R2 + " }
+local function combo(input, layer)
+  if YB:Device() == "deck" then return LAYER_DECK[layer] .. input end   -- en la Deck las letras coinciden
+  return LAYER_TEXT[layer] .. (POSITION[input] or input)
+end
 function EC:Preview()
   local lines = {}
   for _, w in ipairs(YB.EC_WHEELS) do
@@ -127,11 +133,24 @@ local function remember(b, s, input, layer)
   if b.mapping[k] == nil then b.mapping[k] = s.mapping[k] or false end
 end
 
+local applyInner
 function EC:Apply()
   local ok, why = self:Ready()
   if not ok then return false, why end
-  local ck, s = CK(), ecSettings()
   local b = self:Backup()
+  local warn = self:VersionWarning()
+  local fine, okAll, msg = pcall(applyInner, self, b)
+  if not fine then
+    -- algo de Easy Controller falló a medias: lo hecho se puede deshacer
+    okAll, msg = false, "Easy Controller dio un error a medias (" .. tostring(okAll) .. "). Pulsa Deshacer si algo quedó raro."
+  end
+  b.version, b.at = self:Version(), b.at or time()
+  if warn then msg = msg .. " |cffff9020" .. warn .. "|r" end
+  return okAll, msg
+end
+
+applyInner = function(self, b)
+  local ck, s = CK(), ecSettings()
   local failed, done = {}, 0
   local missing = YB:EnsureMacros()
   for _, m in ipairs(missing) do table.insert(failed, "macro " .. m) end
@@ -192,7 +211,7 @@ function EC:Apply()
 
   if ck.Mapping.Apply then pcall(ck.Mapping.Apply, ck.Mapping) end
   if ck.Paddles and ck.Paddles.Apply then pcall(ck.Paddles.Apply, ck.Paddles) end
-  b.version, b.at = self:Version(), time()
+  b.at = time()
   local msg = ("Easy Controller preparado: %d botones."):format(done)
   if #failed > 0 then msg = msg .. " Sin hacer: " .. table.concat(failed, "; ") .. "." end
   return #failed == 0, msg
@@ -243,7 +262,7 @@ end
 function EC:SyncRanks()
   if not self:Applied() or YB.InCombat() then return end
   local ck = CK()
-  if not (ck and ck.MyWheels and YB.EC_TESTED[majorMinor(self:Version()) or ""]) then return end
+  if not (ck and ck.MyWheels and ck.MyWheels.Get and ck.MyWheels.SetSlot) then return end
   local changed = 0
   for _, w in ipairs(YB.EC_WHEELS) do
     local id = findWheel(w.name)
@@ -300,6 +319,7 @@ ev:SetScript("OnEvent", function(_, event)
     if YB.InCombat() then EC.syncPending = true return end
     EC.syncPending = nil
     if timer then timer:Cancel() end
-    if C_Timer and C_Timer.NewTimer then timer = C_Timer.NewTimer(2, function() EC:SyncRanks() end) else EC:SyncRanks() end
+    local function sync() pcall(EC.SyncRanks, EC) end
+    if C_Timer and C_Timer.NewTimer then timer = C_Timer.NewTimer(2, sync) else sync() end
   end
 end)

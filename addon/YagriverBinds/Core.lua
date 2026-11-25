@@ -5,7 +5,7 @@
 --     no las copia a la otra máquina. Las macros YB sí se comparten, a propósito.
 --   * Nada se cambia en combate.
 local ADDON, YB = ...
-YB.VERSION = "6.1"
+YB.VERSION = "6.1.1"
 
 ---------------------------------------------------------------- compatibilidad de API
 function YB.SpellName(id)

@@ -342,6 +342,8 @@ buildEC = function()
   y = para(add, p, (YB.IsLoaded("EasyController") and ("Easy Controller " .. tostring(v) .. ". ") or "") ..
     (ready and "|cff40ff40Listo para preparar.|r" or ("|cffffff00" .. tostring(why) .. "|r")) ..
     (ec:Applied() and "  |cff40ff40Ya preparado por YB.|r" or ""), y, "GameFontHighlight")
+  local warn = YB.IsLoaded("EasyController") and ec:VersionWarning()
+  if warn then y = para(add, p, "|cffff9020" .. warn .. "|r", y) end
 
   y = section(add, p, "Lo que YB pondrá en tu perfil actual", y)
   for _, line in ipairs(ec:Preview()) do y = para(add, p, line, y) end
